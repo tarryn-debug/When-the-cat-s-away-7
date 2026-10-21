@@ -230,7 +230,14 @@
       animation: pinSwivel 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
 
-    .pin-btn:hover, .pin-btn:focus-visible {
+    /* PREVENT REVISITING: DISABLED STATE FOR VIEWED PINS */
+    .pin-btn.viewed {
+      pointer-events: none !important;
+      cursor: default !important;
+    }
+
+    .pin-btn:not(.viewed):hover, 
+    .pin-btn:not(.viewed):focus-visible {
       transform: translate(-50%, -100%) scale(1.25) !important;
     }
 
@@ -252,7 +259,6 @@
       }
     }
 
-    /* 3D PIN SWIVEL / TURN ANIMATION */
     @keyframes pinSwivel {
       0% {
         transform: rotateY(0deg) scale(1);
@@ -760,7 +766,7 @@
       });
     });
 
-    // 4. CLOSE DIALOG - TRIGGER SWIVEL ANIMATION TO SWITCH PIN TO BLUE (PastedVector-43.svg)
+    // 4. CLOSE DIALOG - TRIGGER SWIVEL ANIMATION AND DISABLE REVISITING
     document.getElementById('close-dialog-btn').addEventListener('click', () => {
       if (activePin) {
         const pinBtn = activePin;
@@ -768,7 +774,6 @@
         
         pinBtn.classList.add('swiveling');
         
-        // Swap image halfway through rotation
         setTimeout(() => {
           if (pinImg) {
             pinImg.src = 'Resources/PastedVector-43.svg';
