@@ -200,6 +200,7 @@
       height: 90%;
       background-color: #ffffff;
       overflow: hidden;
+      perspective: 800px;
     }
 
     .world-map-svg {
@@ -209,7 +210,7 @@
       object-fit: contain;
     }
 
-    /* MAP PINS WITH POP-UP ANIMATION & PIN-BOTTOM ANCHORING */
+    /* MAP PINS WITH POP-UP & SWIVEL ANIMATIONS */
     .pin-btn {
       position: absolute;
       transform: translate(-50%, -100%) scale(0);
@@ -225,6 +226,10 @@
       animation: pinPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
 
+    .pin-btn.swiveling .pin-img {
+      animation: pinSwivel 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
     .pin-btn:hover, .pin-btn:focus-visible {
       transform: translate(-50%, -100%) scale(1.25) !important;
     }
@@ -233,6 +238,7 @@
       width: 21px;
       height: auto;
       filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3));
+      transform-style: preserve-3d;
     }
 
     @keyframes pinPop {
@@ -243,6 +249,19 @@
       to {
         opacity: 1;
         transform: translate(-50%, -100%) scale(1);
+      }
+    }
+
+    /* 3D PIN SWIVEL / TURN ANIMATION */
+    @keyframes pinSwivel {
+      0% {
+        transform: rotateY(0deg) scale(1);
+      }
+      50% {
+        transform: rotateY(90deg) scale(1.2);
+      }
+      100% {
+        transform: rotateY(180deg) scale(1);
       }
     }
 
@@ -288,7 +307,6 @@
       padding-bottom: 2.25rem;
     }
 
-    /* Holds the triangle + text box together so they can move up/down as one piece */
     .spotlight-stack {
       width: 100%;
       display: flex;
@@ -318,7 +336,7 @@
       display: block;
     }
 
-    /* CIRCULAR SPOTLIGHT FRAME WITH UNIFORM BORDER */
+    /* CIRCULAR SPOTLIGHT FRAME */
     .spotlight-circle-frame {
       position: absolute;
       top: 36%;
@@ -344,7 +362,6 @@
       display: block;
     }
 
-    /* PIN TIP SITS ON THE MIDDLE OF UKRAINE */
     .spotlight-pin-icon {
       position: absolute;
       top: 53.1%;
@@ -571,7 +588,7 @@
       <div class="spotlight-view-container">
         <div class="spotlight-stack" id="spotlight-stack">
 
-          <!-- TRIANGLE BEAM + CIRCLE (circle sits on the tip of the triangle) -->
+          <!-- TRIANGLE BEAM + CIRCLE -->
           <div class="spotlight-beam" id="spotlight-beam">
             <div class="spotlight-triangle-clip">
               <img src="Resources/PastedVector-30.svg" alt="" class="spotlight-triangle-bg">
@@ -663,7 +680,6 @@
     const viewedMap = new Set();
     let activePin = null;
 
-    // Puts the spotlight circle exactly over the pin that was clicked, so it does not "jump"
     function alignSpotlightToPin(pin) {
       if (!pin) return;
       const app = document.getElementById('interactive-app');
@@ -673,19 +689,16 @@
       const card = document.querySelector('.dialog-card');
       const pinImg = pin.querySelector('.pin-img');
 
-      // start from the default layout
       stack.style.transform = '';
       circle.style.setProperty('--dx', '0px');
 
       const appRect = app.getBoundingClientRect();
       const scale = appRect.width / app.offsetWidth || 1;
 
-      // tip of the pin, measured from the top-left of the interactive
       const gap = pin.offsetHeight - pinImg.offsetHeight;
       const tipX = stage.offsetLeft + pin.offsetLeft;
       const tipY = stage.offsetTop + pin.offsetTop - gap;
 
-      // where the circle is now
       const c = circle.getBoundingClientRect();
       const cx = (c.left + c.width / 2 - appRect.left) / scale;
       const cy = (c.top + c.height / 2 - appRect.top) / scale;
@@ -694,11 +707,9 @@
       let dy = tipY - cy;
       let dx = tipX - cx;
 
-      // keep everything inside the interactive
       const cardBottom = (card.getBoundingClientRect().bottom - appRect.top) / scale;
       const maxDown = app.offsetHeight - 8 - cardBottom;
       const maxUp = 4 - (cy - radius);
-      // the text box always stays fully visible; the circle follows the pin as closely as the space allows
       dy = Math.min(maxDown, Math.max(maxUp, dy));
       dx = Math.max(-14, Math.min(14, dx));
 
@@ -749,14 +760,26 @@
       });
     });
 
-    // 4. CLOSE DIALOG - SWITCHES CLICKED PIN IMAGE TO BLUE (PastedVector-43.svg)
+    // 4. CLOSE DIALOG - TRIGGER SWIVEL ANIMATION TO SWITCH PIN TO BLUE (PastedVector-43.svg)
     document.getElementById('close-dialog-btn').addEventListener('click', () => {
       if (activePin) {
-        const pinImg = activePin.querySelector('.pin-img');
-        if (pinImg) {
-          pinImg.src = 'Resources/PastedVector-43.svg';
-        }
+        const pinBtn = activePin;
+        const pinImg = pinBtn.querySelector('.pin-img');
+        
+        pinBtn.classList.add('swiveling');
+        
+        // Swap image halfway through rotation
+        setTimeout(() => {
+          if (pinImg) {
+            pinImg.src = 'Resources/PastedVector-43.svg';
+          }
+        }, 300);
+
+        setTimeout(() => {
+          pinBtn.classList.remove('swiveling');
+        }, 600);
       }
+
       contentModal.classList.remove('active');
       if (viewedMap.size === 7) {
         setTimeout(() => completionModal.classList.add('active'), 600);
@@ -776,6 +799,7 @@
       document.querySelectorAll('.pin-btn').forEach(p => {
         p.classList.remove('viewed');
         p.classList.remove('animated');
+        p.classList.remove('swiveling');
         const pinImg = p.querySelector('.pin-img');
         if (pinImg) {
           pinImg.src = 'Resources/PastedVector-25.svg';
